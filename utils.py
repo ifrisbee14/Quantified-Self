@@ -123,6 +123,91 @@ def make_avg_sleep_exam_bar(df):
     plt.ylabel("Average Sleep (hours)")
     plt.show()
 
+
+def make_sleep_stress_boxplot(df):
+    """Creates a boxplot comparing sleep by stress level."""
+    plt.figure(figsize=(7, 5))
+    df.boxplot(column="Sleep Analysis [Total] (hr)", by="Stress Level")
+    plt.title("Sleep Distribution by Stress Level")
+    plt.suptitle("")
+    plt.xlabel("Stress Level")
+    plt.ylabel("Sleep Analysis [Total] (hr)")
+    plt.show()
+
+
+def make_steps_sleep_scatter(df):
+    """Creates a scatterplot comparing step count and sleep."""
+    plt.figure(figsize=(7, 5))
+    plt.scatter(df["Step Count (steps)"], df["Sleep Analysis [Total] (hr)"])
+    plt.title("Step Count vs. Total Sleep")
+    plt.xlabel("Step Count")
+    plt.ylabel("Total Sleep (hours)")
+    plt.show()
+
+
+def make_sleep_line_graph(df):
+    """Creates a line graph of sleep over time."""
+    ordered_df = df.sort_values("Date")
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(ordered_df["Date"], ordered_df["Sleep Analysis [Total] (hr)"], marker="o")
+    plt.title("Total Sleep Over Time")
+    plt.xlabel("Date")
+    plt.ylabel("Total Sleep (hours)")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+
+def make_weekly_averages_line_graph(df):
+    """Creates a line graph of weekly averages for selected health features."""
+    week_df = add_week_column(df)
+
+    weekly_avg = week_df.groupby("Week")[
+        [
+            "Sleep Analysis [Total] (hr)",
+            "Apple Exercise Time (min)",
+            "Step Count (steps)",
+            "Respiratory Rate (count/min)"
+        ]
+    ].mean().reset_index()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(weekly_avg["Week"], weekly_avg["Sleep Analysis [Total] (hr)"], marker="o")
+    plt.title("Average Total Sleep by Week")
+    plt.xlabel("Week")
+    plt.ylabel("Average Sleep (hours)")
+    plt.xticks(weekly_avg["Week"])
+    plt.show()
+
+    return weekly_avg
+
+
+def make_correlation_heatmap(df):
+    """Creates a correlation heatmap for numeric project variables."""
+    corr_cols = [
+        "Sleep Analysis [Total] (hr)",
+        "Apple Exercise Time (min)",
+        "Step Count (steps)",
+        "Respiratory Rate (count/min)",
+        "Exam Day",
+        "Assignment Due",
+        "Mood Score",
+        "Stress Label"
+    ]
+
+    corr_df = df[corr_cols].corr()
+
+    plt.figure(figsize=(9, 7))
+    plt.imshow(corr_df, aspect="auto")
+    plt.colorbar()
+    plt.xticks(range(len(corr_df.columns)), corr_df.columns, rotation=90)
+    plt.yticks(range(len(corr_df.columns)), corr_df.columns)
+    plt.title("Correlation Heatmap of Health and Stress Variables")
+    plt.tight_layout()
+    plt.show()
+
+
 def run_t_test_by_stress(df, column):
     """Runs a Welch two-sample t-test comparing high-stress and low-stress days."""
     high_values = df.loc[df["Stress Label"] == 1, column].dropna()
@@ -151,3 +236,70 @@ def run_t_test_by_exam(df, column):
     print(f"p-value: {p_value:.4f}")
 
     return t_stat, p_value
+
+
+def prepare_classification_data(df):
+    """Separates predictors and class label for classification."""
+    feature_cols = HEALTH_FEATURES + STRESS_FEATURES
+    X = df[feature_cols]
+    y = df["Stress Label"]
+    return X, y
+
+
+def evaluate_model(model, X_train, X_test, y_train, y_test, model_name):
+    """Fits a model and prints accuracy, classification report, and confusion matrix."""
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    print(f"{model_name} Accuracy: {accuracy_score(y_test, predictions):.3f}")
+    print(f"\n{model_name} Classification Report:")
+    print(classification_report(y_test, predictions))
+    print(f"{model_name} Confusion Matrix:")
+    print(confusion_matrix(y_test, predictions))
+
+
+def make_knn_model():
+    """Builds a kNN classifier pipeline with median imputation and scaling."""
+    return Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+        ("classifier", KNeighborsClassifier(n_neighbors=5))
+    ])
+
+
+def make_decision_tree_model():
+    """Builds a decision tree classifier pipeline with median imputation."""
+    return Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("classifier", DecisionTreeClassifier(max_depth=4, random_state=42))
+    ])
+
+
+def make_random_forest_model():
+    """Builds an optional random forest classifier pipeline with median imputation."""
+    return Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("classifier", RandomForestClassifier(n_estimators=100, random_state=42))
+    ])
+
+
+def plot_simple_decision_tree(df):
+    """Plots a readable decision tree using the selected project features."""
+    X, y = prepare_classification_data(df)
+
+    imputer = SimpleImputer(strategy="median")
+    X_imputed = imputer.fit_transform(X)
+
+    tree = DecisionTreeClassifier(max_depth=3, random_state=42)
+    tree.fit(X_imputed, y)
+
+    plt.figure(figsize=(18, 8))
+    plot_tree(
+        tree,
+        feature_names=X.columns,
+        class_names=["low stress", "high stress"],
+        filled=True,
+        rounded=True
+    )
+    plt.title("Decision Tree for Predicting Stress Level")
+    plt.show()
