@@ -41,7 +41,7 @@ def load_data(health_filename, stress_filename):
 def clean_health_data(health_df):
     """Cleans the Apple Health data and keeps only the selected health features."""
     health_clean = health_df.copy()
-    health_clean["Date/Time"] = pd.to_datetime(health_clean["Date/Time"], errors="coerce")
+    health_clean["Date/Time"] = pd.to_datetime(health_clean["Date/Time"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
     health_clean["Date"] = health_clean["Date/Time"].dt.date
 
     keep_cols = ["Date"] + HEALTH_FEATURES
@@ -58,7 +58,7 @@ def clean_health_data(health_df):
 def clean_stress_data(stress_df):
     """Cleans the stress log and creates numeric variables for modeling."""
     stress_clean = stress_df.copy()
-    stress_clean["Date/Time"] = pd.to_datetime(stress_clean["Date/Time"], errors="coerce")
+    stress_clean["Date/Time"] = pd.to_datetime(stress_clean["Date/Time"], format="%m/%d/%y %H:%M", errors="coerce")
     stress_clean["Date"] = stress_clean["Date/Time"].dt.date
 
     for col in ["Stress Level", "Exam Day", "Assignment Due", "Mood"]:
